@@ -1,4 +1,5 @@
 import io
+import os
 import re
 import time
 import qrcode
@@ -7,8 +8,18 @@ from urllib.parse import urlencode, quote
 from flask import Flask, request, jsonify, send_file, render_template, abort
 from itsdangerous import URLSafeSerializer, BadSignature
 
+try:
+    from dotenv import load_dotenv
+    venv_env = os.path.join(os.path.dirname(__file__), ".venv", ".env")
+    if os.path.exists(venv_env):
+        load_dotenv(venv_env)
+    else:
+        load_dotenv()
+except ImportError:
+    pass
+
 # ─── CONFIG ───────────────────────────────────────────────────────────────────
-SECRET_KEY = "change-this-secret-key-before-deploying"
+SECRET_KEY = os.environ.get("SECRET_KEY", "dev-secret-key-change-in-production")
 # ─────────────────────────────────────────────────────────────────────────────
 
 app = Flask(__name__)
