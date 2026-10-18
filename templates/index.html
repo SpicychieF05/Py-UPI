@@ -1,0 +1,1707 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Py-UPI — Generate Payment QR</title>
+  <meta name="description" content="Generate a UPI payment QR code instantly with customisable amount, validity and notes." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    /* ── Reset & CSS Variables ───────────────────────────────────────── */
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    :root {
+      --bg:      #0D0D0D;
+      --surface: #161616;
+      --input:   #1E1E1E;
+      --border:  #2A2A2A;
+      --text:    #F2EEE9;
+      --muted:   rgba(242, 238, 233, 0.55);
+      --primary: #056CF2;
+      --accent:  #CAF238;
+      --danger:  #D92B2B;
+    }
+
+    body {
+      font-family: 'Inter', system-ui, -apple-system, sans-serif;
+      background-color: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* ── Header ──────────────────────────────────────────────────────── */
+    header {
+      height: 76px;
+      min-height: 76px;
+      background-color: var(--bg);
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 2rem;
+      width: 100%;
+    }
+
+    .header-left {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+
+    .hamburger-btn {
+      width: 40px;
+      height: 40px;
+      background: transparent;
+      border: none;
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      gap: 5px;
+      padding: 0;
+      border-radius: 8px;
+      transition: background-color 0.15s ease-out;
+    }
+    .hamburger-btn:hover {
+      background-color: var(--surface);
+      transform: none;
+    }
+    .hamburger-btn .line {
+      width: 22px;
+      height: 2px;
+      background-color: var(--text);
+      border-radius: 1px;
+    }
+
+    .header-logo-group {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      user-select: none;
+    }
+
+    .hex-icon {
+      width: 24px;
+      height: 24px;
+      fill: var(--accent);
+      flex-shrink: 0;
+    }
+
+    .logo-text {
+      font-size: 28px;
+      font-weight: 700;
+      color: var(--text);
+      letter-spacing: -0.02em;
+      line-height: 1;
+    }
+
+    .header-right {
+      font-size: 15px;
+      color: var(--muted);
+      font-weight: 400;
+    }
+
+    /* ── Main Layout ─────────────────────────────────────────────────── */
+    main {
+      flex: 1;
+      width: 100%;
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+      padding: 56px 1.5rem 64px;
+    }
+
+    .layout-block {
+      width: min(76%, 1100px);
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+      gap: 165px;
+    }
+
+    /* ── Cards Common ────────────────────────────────────────────────── */
+    .card {
+      background-color: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 24px;
+      position: relative;
+    }
+
+    .card-title {
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--accent);
+      text-transform: uppercase;
+      letter-spacing: 0.2em;
+    }
+
+    .card-details {
+      width: 530px;
+      flex: 0 0 530px;
+    }
+
+    .right-column {
+      width: 400px;
+      flex: 0 0 400px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    .card-qr {
+      width: 100%;
+    }
+
+    /* ── Details Card Header ─────────────────────────────────────────── */
+    .details-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 22px;
+    }
+
+    .reset-btn {
+      height: 36px;
+      padding: 0 14px;
+      background: transparent;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      color: var(--text);
+      font-family: inherit;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: border-color 0.15s ease-out, transform 0.15s ease-out;
+    }
+    .reset-btn svg {
+      width: 14px;
+      height: 14px;
+      stroke: currentColor;
+    }
+    .reset-btn:hover {
+      border-color: var(--text);
+      transform: translateY(-2px);
+    }
+    .reset-btn:active {
+      transform: scale(0.97);
+    }
+
+    /* ── Form Fields ─────────────────────────────────────────────────── */
+    .field-group {
+      margin-bottom: 18px;
+    }
+
+    .field-label {
+      display: block;
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--text);
+      margin-bottom: 8px;
+    }
+
+    .input-base {
+      width: 100%;
+      height: 46px;
+      background-color: var(--input);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      color: var(--text);
+      font-family: inherit;
+      font-size: 15px;
+      padding: 0 14px;
+      outline: none;
+      transition: border-color 0.15s ease-out, outline 0.15s ease-out;
+    }
+    .input-base:focus {
+      border-color: var(--primary);
+      outline: 2px solid var(--primary);
+      outline-offset: 0;
+    }
+    .input-base::placeholder {
+      color: rgba(242, 238, 233, 0.4);
+    }
+
+    /* Stepper validity field */
+    .stepper-wrap {
+      width: 100%;
+      height: 46px;
+      background-color: var(--input);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 9px;
+      transition: border-color 0.15s ease-out, outline 0.15s ease-out;
+    }
+    .stepper-wrap:focus-within {
+      border-color: var(--primary);
+      outline: 2px solid var(--primary);
+      outline-offset: 0;
+    }
+
+    .stepper-btn {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      background-color: var(--border);
+      border: none;
+      color: var(--text);
+      font-size: 16px;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      user-select: none;
+      transition: border-color 0.15s ease-out, transform 0.15s ease-out, filter 0.15s ease-out;
+    }
+    .stepper-btn:hover {
+      filter: brightness(1.2);
+      transform: translateY(-1px);
+    }
+    .stepper-btn:active {
+      transform: scale(0.95);
+    }
+
+    .stepper-input {
+      border: none;
+      background: transparent;
+      color: var(--text);
+      font-family: inherit;
+      font-size: 16px;
+      font-weight: 600;
+      text-align: center;
+      width: 90px;
+      outline: none;
+      font-variant-numeric: tabular-nums;
+    }
+
+    /* Note input with inline counter */
+    .note-input-wrap {
+      width: 100%;
+      height: 46px;
+      background-color: var(--input);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      padding: 0 14px;
+      transition: border-color 0.15s ease-out, outline 0.15s ease-out;
+    }
+    .note-input-wrap:focus-within {
+      border-color: var(--primary);
+      outline: 2px solid var(--primary);
+      outline-offset: 0;
+    }
+    .note-input-wrap input {
+      flex: 1;
+      height: 100%;
+      border: none;
+      background: transparent;
+      color: var(--text);
+      font-family: inherit;
+      font-size: 15px;
+      outline: none;
+      padding: 0;
+    }
+    .note-input-wrap input::placeholder {
+      color: rgba(242, 238, 233, 0.4);
+    }
+    .note-counter {
+      font-size: 13px;
+      color: var(--muted);
+      font-variant-numeric: tabular-nums;
+      margin-left: 8px;
+      user-select: none;
+      white-space: nowrap;
+    }
+
+    /* Primary Generate button */
+    .generate-btn {
+      width: 100%;
+      height: 48px;
+      background-color: var(--primary);
+      border: none;
+      border-radius: 12px;
+      color: #FFFFFF;
+      font-family: inherit;
+      font-size: 16px;
+      font-weight: 700;
+      cursor: pointer;
+      margin-top: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      transition: filter 0.15s ease-out, transform 0.15s ease-out;
+    }
+    .generate-btn:hover {
+      filter: brightness(1.1);
+      transform: translateY(-2px);
+    }
+    .generate-btn:active {
+      transform: scale(0.97);
+    }
+    .generate-btn:disabled {
+      opacity: 0.55;
+      cursor: not-allowed;
+      transform: none;
+      filter: none;
+    }
+
+    /* Error text */
+    .field-error {
+      color: var(--danger);
+      font-size: 13px;
+      font-weight: 700;
+      margin-top: 6px;
+      display: none;
+      align-items: center;
+      gap: 5px;
+      animation: errorSlide 200ms ease-out;
+    }
+    @keyframes errorSlide {
+      from { opacity: 0; transform: translateY(-4px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* ── Right Card: Payment QR ──────────────────────────────────────── */
+    .qr-title {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+
+    .shop-name-display {
+      font-size: 24px;
+      font-weight: 700;
+      color: var(--text);
+      text-align: center;
+      margin-bottom: 18px;
+      word-break: break-word;
+      line-height: 1.25;
+      display: none;
+    }
+
+    /* QR Panel Sticker Box */
+    .qr-panel-box {
+      width: 240px;
+      height: 240px;
+      background-color: #F2EEE9;
+      border-radius: 12px;
+      margin: 0 auto;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      overflow: hidden;
+      transition: border 0.2s ease-out, background-color 0.2s ease-out;
+    }
+
+    .qr-panel-box img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      display: none;
+    }
+    .qr-panel-box.has-qr img {
+      display: block;
+      animation: qrPop 300ms ease-out;
+    }
+    @keyframes qrPop {
+      from { opacity: 0; transform: scale(0.95); }
+      to { opacity: 1; transform: scale(1); }
+    }
+
+    /* Empty state inside QR panel */
+    .qr-placeholder-state {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      color: rgba(13, 13, 13, 0.4);
+    }
+    .qr-placeholder-state svg {
+      opacity: 0.4;
+      stroke: #0D0D0D;
+    }
+    .qr-placeholder-state span {
+      font-size: 14px;
+      font-weight: 500;
+      color: rgba(13, 13, 13, 0.4);
+    }
+
+    /* Expired state inside QR panel */
+    .qr-panel-box.expired {
+      background-color: var(--input);
+      border: 1px dashed var(--danger);
+    }
+    .qr-expired-content {
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      color: var(--danger);
+      animation: fadeIn 250ms ease-out;
+    }
+    .qr-expired-content svg {
+      stroke: var(--danger);
+    }
+    .qr-expired-content span {
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--danger);
+      letter-spacing: 0.02em;
+    }
+    .qr-panel-box.expired .qr-expired-content {
+      display: flex;
+    }
+    .qr-panel-box.expired img,
+    .qr-panel-box.expired .qr-placeholder-state {
+      display: none;
+    }
+
+    /* Amount display */
+    .amount-display {
+      font-size: 48px;
+      font-weight: 700;
+      color: var(--accent);
+      text-align: center;
+      margin-top: 22px;
+      margin-bottom: 16px;
+      font-variant-numeric: tabular-nums;
+      line-height: 1;
+      display: none;
+    }
+
+    /* Timer Row */
+    .timer-row {
+      width: 100%;
+      max-width: 280px;
+      display: none;
+      align-items: center;
+      gap: 12px;
+      margin: 0 auto 20px;
+    }
+
+    .progress-track {
+      flex: 1;
+      height: 6px;
+      background-color: var(--input);
+      border-radius: 3px;
+      overflow: hidden;
+    }
+    .progress-fill {
+      height: 100%;
+      background-color: var(--text);
+      width: 100%;
+      border-radius: 3px;
+      transition: width 1s linear, background-color 0.2s ease-out;
+    }
+    .progress-fill.urgent {
+      background-color: var(--danger);
+    }
+
+    .timer-text {
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--text);
+      font-variant-numeric: tabular-nums;
+      min-width: 44px;
+      text-align: right;
+    }
+    .timer-text.urgent {
+      color: var(--danger);
+      animation: pulse 1s ease-in-out infinite;
+    }
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.45; }
+    }
+
+    /* Save QR Button */
+    .save-qr-btn {
+      display: none;
+      margin: 0 auto;
+      height: 36px;
+      padding: 0 16px;
+      background: transparent;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      color: var(--text);
+      font-family: inherit;
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      align-items: center;
+      gap: 6px;
+      transition: border-color 0.15s ease-out, transform 0.15s ease-out;
+    }
+    .save-qr-btn svg {
+      width: 14px;
+      height: 14px;
+      stroke: currentColor;
+    }
+    .save-qr-btn:hover {
+      border-color: var(--text);
+      transform: translateY(-2px);
+    }
+    .save-qr-btn:active {
+      transform: scale(0.97);
+    }
+
+    /* Thank-you section outside the card */
+    .thank-you-wrap {
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      margin-top: 18px;
+      width: 100%;
+    }
+    .thank-you-bar {
+      width: 32px;
+      height: 2px;
+      background-color: var(--accent);
+      margin-bottom: 8px;
+    }
+    .thank-you-text {
+      font-style: italic;
+      color: var(--text);
+      font-size: 15px;
+      text-align: center;
+      word-break: break-word;
+      line-height: 1.4;
+    }
+
+    /* ── Slide-Out Menu ──────────────────────────────────────────────── */
+    .menu-backdrop {
+      position: fixed;
+      inset: 0;
+      background-color: rgba(0, 0, 0, 0.6);
+      opacity: 0;
+      visibility: hidden;
+      transition: opacity 250ms ease-out, visibility 250ms ease-out;
+      z-index: 100;
+    }
+    .menu-backdrop.open {
+      opacity: 1;
+      visibility: visible;
+    }
+
+    .menu-drawer {
+      position: fixed;
+      top: 0;
+      left: 0;
+      bottom: 0;
+      width: 320px;
+      max-width: 85vw;
+      background-color: var(--surface);
+      border-right: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      transform: translateX(-100%);
+      transition: transform 250ms ease-out;
+      z-index: 101;
+      padding: 24px;
+      overflow-y: auto;
+    }
+    .menu-drawer.open {
+      transform: translateX(0);
+    }
+
+    .menu-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 20px;
+    }
+    .menu-close-btn {
+      width: 36px;
+      height: 36px;
+      background: transparent;
+      border: none;
+      color: var(--text);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 8px;
+      padding: 0;
+      transition: background-color 0.15s ease-out;
+    }
+    .menu-close-btn:hover {
+      background-color: var(--input);
+      transform: none;
+    }
+
+    .menu-error {
+      color: var(--danger);
+      font-size: 13px;
+      font-weight: 700;
+      margin-bottom: 12px;
+      display: none;
+    }
+
+    .saved-list {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      margin-bottom: 24px;
+    }
+
+    .saved-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background-color: var(--input);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 10px 12px;
+      cursor: pointer;
+      transition: border-color 0.15s ease-out;
+    }
+    .saved-item:hover {
+      border-color: var(--text);
+    }
+    .saved-item.active {
+      border-color: var(--primary);
+    }
+
+    .saved-item-left {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex: 1;
+      min-width: 0;
+    }
+
+    .radio-circle {
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      border: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+    .saved-item.active .radio-circle {
+      border-color: var(--primary);
+    }
+    .radio-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background-color: var(--primary);
+      display: none;
+    }
+    .saved-item.active .radio-dot {
+      display: block;
+    }
+
+    .saved-item-info {
+      display: flex;
+      flex-direction: column;
+      min-width: 0;
+    }
+    .saved-item-label {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .saved-item-id {
+      font-size: 13px;
+      color: var(--muted);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .saved-delete-btn {
+      width: 28px;
+      height: 28px;
+      background: transparent;
+      border: none;
+      color: var(--muted);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 6px;
+      transition: color 0.15s ease-out, background-color 0.15s ease-out;
+      margin-left: 6px;
+      flex-shrink: 0;
+    }
+    .saved-delete-btn:hover {
+      color: var(--danger);
+      background-color: rgba(217, 43, 43, 0.12);
+      transform: none;
+    }
+
+    .add-form-title {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      margin-bottom: 10px;
+    }
+
+    .menu-add-form {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .handle-row {
+      display: flex;
+      gap: 8px;
+    }
+
+    .handle-select {
+      height: 46px;
+      background-color: var(--input);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      color: var(--text);
+      font-family: inherit;
+      font-size: 14px;
+      padding: 0 10px;
+      outline: none;
+      cursor: pointer;
+      flex: 0 0 auto;
+      display: none;
+      animation: fadeIn 200ms ease-out;
+    }
+    .handle-select:focus {
+      border-color: var(--primary);
+      outline: 2px solid var(--primary);
+    }
+    .handle-select option {
+      background-color: var(--surface);
+      color: var(--text);
+    }
+
+    .custom-handle-input {
+      display: none;
+      height: 46px;
+      background-color: var(--input);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      color: var(--text);
+      font-family: inherit;
+      font-size: 14px;
+      padding: 0 12px;
+      outline: none;
+      width: 100%;
+      animation: fadeIn 200ms ease-out;
+    }
+    .custom-handle-input:focus {
+      border-color: var(--primary);
+      outline: 2px solid var(--primary);
+    }
+
+    .menu-save-btn {
+      width: 100%;
+      height: 44px;
+      background-color: var(--primary);
+      border: none;
+      border-radius: 12px;
+      color: #FFFFFF;
+      font-family: inherit;
+      font-size: 15px;
+      font-weight: 700;
+      cursor: pointer;
+      margin-top: 6px;
+      transition: filter 0.15s ease-out, transform 0.15s ease-out;
+    }
+    .menu-save-btn:hover {
+      filter: brightness(1.1);
+      transform: translateY(-2px);
+    }
+    .menu-save-btn:active {
+      transform: scale(0.97);
+    }
+
+    .menu-footer-note {
+      font-size: 12px;
+      color: var(--muted);
+      text-align: center;
+      margin-top: auto;
+      padding-top: 24px;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+
+    /* ── Footer ──────────────────────────────────────────────────────── */
+    footer {
+      width: 100%;
+      text-align: center;
+      padding: 20px 1.5rem;
+      font-size: 13px;
+      color: var(--muted);
+      border-top: 1px solid var(--border);
+      background-color: var(--bg);
+    }
+
+    /* ── Responsive Breakdown ────────────────────────────────────────── */
+    @media (max-width: 1200px) {
+      .layout-block {
+        gap: clamp(24px, 6vw, 165px);
+        width: 100%;
+      }
+    }
+
+    @media (max-width: 900px) {
+      header {
+        padding: 0 1rem;
+      }
+      .header-right {
+        display: none;
+      }
+      main {
+        padding: 24px 16px 48px;
+      }
+      .layout-block {
+        flex-direction: column;
+        align-items: center;
+        gap: 24px;
+        width: 100%;
+      }
+      .card-details,
+      .right-column {
+        width: 100%;
+        max-width: 530px;
+        flex: 1 1 auto;
+      }
+    }
+
+    /* ── Reduced Motion ──────────────────────────────────────────────── */
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ── Slide-Out Menu ─────────────────────────────────────────────── -->
+  <div id="menuBackdrop" class="menu-backdrop" aria-hidden="true"></div>
+  <aside id="menuDrawer" class="menu-drawer" role="dialog" aria-modal="true" aria-label="Saved UPI IDs">
+    <div class="menu-header">
+      <div class="card-title">Saved UPI IDs</div>
+      <button id="menuCloseBtn" class="menu-close-btn" aria-label="Close menu">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="18" y1="6" x2="6" y2="18"></line>
+          <line x1="6" y1="6" x2="18" y2="18"></line>
+        </svg>
+      </button>
+    </div>
+
+    <div id="menuError" class="menu-error" role="alert"></div>
+
+    <div id="savedUpiList" class="saved-list">
+      <!-- Generated via JS -->
+    </div>
+
+    <div class="add-form-title">Add New</div>
+    <form id="menuAddForm" class="menu-add-form" onsubmit="event.preventDefault(); saveUpiFromMenu();">
+      <input type="text" id="menuLabelInput" class="input-base" placeholder="Label (optional, e.g. Personal)" />
+      
+      <div class="handle-row">
+        <input type="text" id="menuUpiInput" class="input-base" placeholder="UPI ID or phone number" required />
+        <select id="handleDropdown" class="handle-select" aria-label="Select UPI handle">
+          <option value="@ybl">@ybl</option>
+          <option value="@paytm">@paytm</option>
+          <option value="@okhdfcbank">@okhdfcbank</option>
+          <option value="@okaxis">@okaxis</option>
+          <option value="@oksbi">@oksbi</option>
+          <option value="@okicici">@okicici</option>
+          <option value="@apl">@apl</option>
+          <option value="@upi">@upi</option>
+          <option value="Other">Other</option>
+        </select>
+      </div>
+
+      <input type="text" id="customHandleInput" class="custom-handle-input" placeholder="e.g. @bankname" />
+
+      <button type="submit" class="menu-save-btn">Save</button>
+    </form>
+
+    <div class="menu-footer-note">Saved only in this browser.</div>
+  </aside>
+
+  <!-- ── Header ─────────────────────────────────────────────────────── -->
+  <header>
+    <div class="header-left">
+      <button id="menuBtn" class="hamburger-btn" aria-label="Open menu">
+        <span class="line"></span>
+        <span class="line"></span>
+        <span class="line"></span>
+      </button>
+      <div class="header-logo-group">
+        <svg class="hex-icon" viewBox="0 0 24 24">
+          <polygon points="12,2 21,7.2 21,16.8 12,22 3,16.8 3,7.2"></polygon>
+        </svg>
+        <span class="logo-text">Py-UPI</span>
+      </div>
+    </div>
+    <div class="header-right">
+      UPI Payment QR Generator
+    </div>
+  </header>
+
+  <!-- ── Main Area ──────────────────────────────────────────────────── -->
+  <main>
+    <div class="layout-block">
+
+      <!-- LEFT CARD: PAYMENT DETAILS -->
+      <div class="card card-details">
+        <div class="details-header">
+          <h2 class="card-title">PAYMENT DETAILS</h2>
+          <button id="resetBtn" type="button" class="reset-btn" onclick="resetForm()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path>
+              <path d="M3 3v5h5"></path>
+            </svg>
+            <span>Reset</span>
+          </button>
+        </div>
+
+        <form id="paymentForm" onsubmit="event.preventDefault(); generateQR();">
+          <!-- 1. Shop / Business name -->
+          <div class="field-group">
+            <label class="field-label" for="shopName">Shop / Business name</label>
+            <input type="text" id="shopName" class="input-base" placeholder="e.g. Sri Ganesh Stores" />
+            <div id="shopNameError" class="field-error">⚠ <span></span></div>
+          </div>
+
+          <!-- 2. Amount (₹) -->
+          <div class="field-group">
+            <label class="field-label" for="amount">Amount (₹)</label>
+            <input type="number" id="amount" class="input-base" min="0.01" max="100000" step="0.01" placeholder="0.00" />
+            <div id="amountError" class="field-error">⚠ <span></span></div>
+          </div>
+
+          <!-- 3. QR validity -->
+          <div class="field-group">
+            <label class="field-label" for="validityInput">QR validity</label>
+            <div class="stepper-wrap" id="stepperWrap">
+              <button type="button" class="stepper-btn" id="stepDownBtn" aria-label="Decrease validity by 30 seconds">−</button>
+              <input type="text" id="validityInput" class="stepper-input" value="05:00" maxlength="5" />
+              <button type="button" class="stepper-btn" id="stepUpBtn" aria-label="Increase validity by 30 seconds">+</button>
+            </div>
+            <div id="validityError" class="field-error">⚠ <span></span></div>
+          </div>
+
+          <!-- 4. Note to payer -->
+          <div class="field-group">
+            <label class="field-label" for="note">Note to payer</label>
+            <div class="note-input-wrap">
+              <input type="text" id="note" maxlength="50" placeholder="e.g. Bill #4092" />
+              <span id="noteCounter" class="note-counter">0 / 50</span>
+            </div>
+            <div id="noteError" class="field-error">⚠ <span></span></div>
+          </div>
+
+          <!-- 5. Thank-you message -->
+          <div class="field-group">
+            <label class="field-label" for="thankYou">Thank-you message</label>
+            <input type="text" id="thankYou" class="input-base" placeholder="e.g. Thank you! Please visit again." />
+            <div id="thankYouError" class="field-error">⚠ <span></span></div>
+          </div>
+
+          <!-- Submit Button -->
+          <button type="submit" id="generateBtn" class="generate-btn">
+            Generate QR
+          </button>
+        </form>
+      </div>
+
+      <!-- RIGHT COLUMN: PAYMENT QR CARD + THANK-YOU MESSAGE BELOW -->
+      <div class="right-column">
+        <div class="card card-qr">
+          <h2 class="card-title qr-title">PAYMENT QR</h2>
+
+          <!-- Shop name above QR -->
+          <div id="shopNameDisplay" class="shop-name-display"></div>
+
+          <!-- QR Panel Sticker Box -->
+          <div id="qrBox" class="qr-panel-box">
+            <!-- Empty Placeholder -->
+            <div id="qrPlaceholder" class="qr-placeholder-state">
+              <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke-width="1.3">
+                <rect x="3" y="3" width="7" height="7" rx="1"></rect>
+                <rect x="14" y="3" width="7" height="7" rx="1"></rect>
+                <rect x="3" y="14" width="7" height="7" rx="1"></rect>
+                <path d="M14 14h2v2h-2zM18 14h2v2h-2zM14 18h2v2h-2zM18 18h2v2h-2z"></path>
+              </svg>
+              <span>QR code appears here</span>
+            </div>
+
+            <!-- Active QR Image -->
+            <img id="qrImage" src="" alt="UPI Payment QR Code" />
+
+            <!-- Expired Overlay Inside QR -->
+            <div id="qrExpiredContent" class="qr-expired-content">
+              <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="10"></circle>
+                <polyline points="12 6 12 12 16 14"></polyline>
+              </svg>
+              <span>QR expired</span>
+            </div>
+          </div>
+
+          <!-- Amount Display -->
+          <div id="amountDisplay" class="amount-display"></div>
+
+          <!-- Timer Row -->
+          <div id="timerRow" class="timer-row">
+            <div class="progress-track">
+              <div id="progressFill" class="progress-fill"></div>
+            </div>
+            <div id="timerText" class="timer-text">05:00</div>
+          </div>
+
+          <!-- Save QR Button -->
+          <button type="button" id="saveQrBtn" class="save-qr-btn" onclick="saveQr()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+              <polyline points="7 10 12 15 17 10"></polyline>
+              <line x1="12" y1="15" x2="12" y2="3"></line>
+            </svg>
+            <span>Save QR</span>
+          </button>
+        </div>
+
+        <!-- Outside Card: Thank-you message with 2px x 32px accent line -->
+        <div id="thankYouWrap" class="thank-you-wrap">
+          <div class="thank-you-bar"></div>
+          <div id="thankYouDisplay" class="thank-you-text"></div>
+        </div>
+      </div>
+
+    </div>
+  </main>
+
+  <!-- ── Footer ─────────────────────────────────────────────────────── -->
+  <footer>
+    Py-UPI — Demo project. Not affiliated with NPCI or any UPI provider.
+  </footer>
+
+  <!-- ── JavaScript ─────────────────────────────────────────────────── -->
+  <script>
+    /* ── State & Storage ─────────────────────────────────────────────── */
+    const STORAGE_KEY_UPIS = 'py_upi_saved_ids';
+    const STORAGE_KEY_ACTIVE = 'py_upi_active_id';
+    const UPI_REGEX = /^[a-zA-Z0-9.\-_]{2,256}@[a-zA-Z]{2,64}$/;
+
+    let _savedUpis = [];
+    let _activeUpiId = null;
+
+    let _timerInterval = null;
+    let _expiryTs = 0;
+    let _totalValiditySec = 300;
+    let _qrActiveOrExpired = false;
+
+    function safeGetItem(key) {
+      try { return localStorage.getItem(key); } catch (e) { return null; }
+    }
+    function safeSetItem(key, val) {
+      try { localStorage.setItem(key, val); } catch (e) {}
+    }
+
+    function initSavedUpis() {
+      try {
+        const raw = safeGetItem(STORAGE_KEY_UPIS);
+        _savedUpis = raw ? JSON.parse(raw) : [];
+        if (!Array.isArray(_savedUpis)) _savedUpis = [];
+      } catch (e) {
+        _savedUpis = [];
+      }
+      _activeUpiId = safeGetItem(STORAGE_KEY_ACTIVE);
+      if (!_activeUpiId && _savedUpis.length > 0) {
+        _activeUpiId = _savedUpis[0].id;
+        safeSetItem(STORAGE_KEY_ACTIVE, _activeUpiId);
+      }
+      renderUpiList();
+    }
+
+    function saveUpiStorage() {
+      safeSetItem(STORAGE_KEY_UPIS, JSON.stringify(_savedUpis));
+      safeSetItem(STORAGE_KEY_ACTIVE, _activeUpiId || '');
+    }
+
+    function renderUpiList() {
+      const container = document.getElementById('savedUpiList');
+      container.innerHTML = '';
+      _savedUpis.forEach((item, idx) => {
+        const isActive = item.id === _activeUpiId;
+        const row = document.createElement('div');
+        row.className = 'saved-item' + (isActive ? ' active' : '');
+        row.onclick = () => selectActiveUpi(item.id);
+
+        const left = document.createElement('div');
+        left.className = 'saved-item-left';
+
+        const circle = document.createElement('div');
+        circle.className = 'radio-circle';
+        const dot = document.createElement('div');
+        dot.className = 'radio-dot';
+        circle.appendChild(dot);
+
+        const info = document.createElement('div');
+        info.className = 'saved-item-info';
+        if (item.label) {
+          const lbl = document.createElement('div');
+          lbl.className = 'saved-item-label';
+          lbl.textContent = item.label;
+          info.appendChild(lbl);
+        }
+        const idEl = document.createElement('div');
+        idEl.className = 'saved-item-id';
+        idEl.textContent = item.id;
+        info.appendChild(idEl);
+
+        left.appendChild(circle);
+        left.appendChild(info);
+
+        const delBtn = document.createElement('button');
+        delBtn.type = 'button';
+        delBtn.className = 'saved-delete-btn';
+        delBtn.title = 'Delete UPI ID';
+        delBtn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>';
+        delBtn.onclick = (e) => {
+          e.stopPropagation();
+          deleteUpi(idx);
+        };
+
+        row.appendChild(left);
+        row.appendChild(delBtn);
+        container.appendChild(row);
+      });
+    }
+
+    function selectActiveUpi(id) {
+      _activeUpiId = id;
+      saveUpiStorage();
+      renderUpiList();
+    }
+
+    function deleteUpi(index) {
+      const deleted = _savedUpis.splice(index, 1)[0];
+      if (deleted && deleted.id === _activeUpiId) {
+        _activeUpiId = _savedUpis.length > 0 ? _savedUpis[0].id : null;
+      }
+      saveUpiStorage();
+      renderUpiList();
+    }
+
+    /* ── Slide-Out Menu UI ───────────────────────────────────────────── */
+    const menuBtn = document.getElementById('menuBtn');
+    const menuCloseBtn = document.getElementById('menuCloseBtn');
+    const menuDrawer = document.getElementById('menuDrawer');
+    const menuBackdrop = document.getElementById('menuBackdrop');
+    const menuError = document.getElementById('menuError');
+    const menuUpiInput = document.getElementById('menuUpiInput');
+    const handleDropdown = document.getElementById('handleDropdown');
+    const customHandleInput = document.getElementById('customHandleInput');
+
+    function openMenu() {
+      menuDrawer.classList.add('open');
+      menuBackdrop.classList.add('open');
+      menuUpiInput.focus();
+    }
+
+    function closeMenu() {
+      menuDrawer.classList.remove('open');
+      menuBackdrop.classList.remove('open');
+      menuError.style.display = 'none';
+      menuBtn.focus();
+    }
+
+    menuBtn.addEventListener('click', openMenu);
+    menuCloseBtn.addEventListener('click', closeMenu);
+    menuBackdrop.addEventListener('click', closeMenu);
+
+    window.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && menuDrawer.classList.contains('open')) {
+        closeMenu();
+      }
+    });
+
+    // 10-digit detection and handle dropdown
+    menuUpiInput.addEventListener('input', () => {
+      const val = menuUpiInput.value.trim();
+      const is10Digit = /^[6-9]\d{9}$/.test(val);
+      if (is10Digit) {
+        handleDropdown.style.display = 'block';
+        if (handleDropdown.value === 'Other') {
+          customHandleInput.style.display = 'block';
+        }
+      } else {
+        handleDropdown.style.display = 'none';
+        customHandleInput.style.display = 'none';
+      }
+    });
+
+    handleDropdown.addEventListener('change', () => {
+      if (handleDropdown.value === 'Other') {
+        customHandleInput.style.display = 'block';
+        customHandleInput.focus();
+      } else {
+        customHandleInput.style.display = 'none';
+      }
+    });
+
+    function showMenuError(msg) {
+      menuError.textContent = msg;
+      menuError.style.display = 'block';
+    }
+
+    function saveUpiFromMenu() {
+      menuError.style.display = 'none';
+      const label = document.getElementById('menuLabelInput').value.trim();
+      let upiRaw = menuUpiInput.value.trim();
+
+      const is10Digit = /^[6-9]\d{9}$/.test(upiRaw);
+      let fullUpi = upiRaw;
+
+      if (is10Digit) {
+        const handleChoice = handleDropdown.value;
+        if (handleChoice === 'Other') {
+          const custom = customHandleInput.value.trim();
+          if (!custom) {
+            showMenuError('Please enter a handle for the phone number.');
+            return;
+          }
+          fullUpi = upiRaw + (custom.startsWith('@') ? custom : '@' + custom);
+        } else {
+          fullUpi = upiRaw + handleChoice;
+        }
+      }
+
+      if (!UPI_REGEX.test(fullUpi)) {
+        showMenuError('Invalid UPI ID. Format should be username@handle.');
+        return;
+      }
+
+      // Check duplicates
+      const exists = _savedUpis.some(item => item.id.toLowerCase() === fullUpi.toLowerCase());
+      if (exists) {
+        showMenuError('This UPI ID is already saved.');
+        return;
+      }
+
+      _savedUpis.push({ id: fullUpi, label: label });
+      _activeUpiId = fullUpi;
+      saveUpiStorage();
+      renderUpiList();
+
+      // Reset form
+      document.getElementById('menuLabelInput').value = '';
+      menuUpiInput.value = '';
+      handleDropdown.style.display = 'none';
+      handleDropdown.value = '@ybl';
+      customHandleInput.style.display = 'none';
+      customHandleInput.value = '';
+      closeMenu();
+    }
+
+    /* ── Validity Stepper ────────────────────────────────────────────── */
+    const validityInput = document.getElementById('validityInput');
+    const stepDownBtn = document.getElementById('stepDownBtn');
+    const stepUpBtn = document.getElementById('stepUpBtn');
+
+    function formatMmSs(totalSec) {
+      const m = Math.floor(totalSec / 60);
+      const s = totalSec % 60;
+      return String(m).padStart(2, '0') + ':' + String(s).padStart(2, '0');
+    }
+
+    function parseMmSs(str) {
+      str = String(str).trim();
+      if (!str) return 300;
+      if (str.includes(':')) {
+        const parts = str.split(':');
+        const m = parseInt(parts[0], 10) || 0;
+        const s = parseInt(parts[1], 10) || 0;
+        return m * 60 + s;
+      }
+      const n = parseInt(str, 10);
+      if (isNaN(n)) return 300;
+      if (n <= 60) return n * 60;
+      return n;
+    }
+
+    function getValiditySeconds() {
+      return parseMmSs(validityInput.value);
+    }
+
+    function setValiditySeconds(sec) {
+      const clamped = Math.max(30, Math.min(3600, sec));
+      validityInput.value = formatMmSs(clamped);
+      clearFieldError('validity');
+    }
+
+    stepDownBtn.addEventListener('click', () => {
+      const cur = getValiditySeconds();
+      setValiditySeconds(cur - 30);
+    });
+
+    stepUpBtn.addEventListener('click', () => {
+      const cur = getValiditySeconds();
+      setValiditySeconds(cur + 30);
+    });
+
+    validityInput.addEventListener('blur', () => {
+      const raw = validityInput.value;
+      const parsed = parseMmSs(raw);
+      if (parsed < 30 || parsed > 3600) {
+        showFieldError('validity', 'Validity must be between 00:30 and 60:00.');
+      } else {
+        clearFieldError('validity');
+      }
+      setValiditySeconds(parsed);
+    });
+
+    /* ── Note Counter ────────────────────────────────────────────────── */
+    const noteInput = document.getElementById('note');
+    const noteCounter = document.getElementById('noteCounter');
+    noteInput.addEventListener('input', () => {
+      noteCounter.textContent = noteInput.value.length + ' / 50';
+    });
+
+    /* ── Inline Field Errors ─────────────────────────────────────────── */
+    function showFieldError(field, msg) {
+      const errEl = document.getElementById(field + 'Error');
+      if (errEl) {
+        errEl.querySelector('span').textContent = msg;
+        errEl.style.display = 'flex';
+      }
+    }
+
+    function clearFieldError(field) {
+      const errEl = document.getElementById(field + 'Error');
+      if (errEl) {
+        errEl.style.display = 'none';
+        errEl.querySelector('span').textContent = '';
+      }
+    }
+
+    function clearAllErrors() {
+      ['shopName', 'amount', 'validity', 'note', 'thankYou'].forEach(clearFieldError);
+    }
+
+    /* ── Generate QR ─────────────────────────────────────────────────── */
+    async function generateQR() {
+      clearAllErrors();
+
+      // Check active UPI ID
+      if (!_activeUpiId) {
+        openMenu();
+        showMenuError('Add a UPI ID to continue');
+        return;
+      }
+
+      const shopName = document.getElementById('shopName').value.trim();
+      const amountStr = document.getElementById('amount').value.trim();
+      const note = document.getElementById('note').value.trim();
+      const thankYou = document.getElementById('thankYou').value.trim();
+      const validitySec = getValiditySeconds();
+
+      let hasError = false;
+
+      if (!shopName) {
+        showFieldError('shopName', 'Shop / business name is required.');
+        hasError = true;
+      }
+
+      const amountNum = parseFloat(amountStr);
+      if (isNaN(amountNum) || amountNum <= 0 || amountNum > 100000) {
+        showFieldError('amount', 'Enter an amount between ₹0.01 and ₹1,00,000.');
+        hasError = true;
+      }
+
+      if (validitySec < 30 || validitySec > 3600) {
+        showFieldError('validity', 'Validity must be between 00:30 and 60:00.');
+        hasError = true;
+      }
+
+      if (hasError) return;
+
+      const genBtn = document.getElementById('generateBtn');
+      genBtn.disabled = true;
+      genBtn.textContent = 'Generating...';
+
+      try {
+        const payload = {
+          upi_id: _activeUpiId,
+          shop_name: shopName,
+          amount: amountNum,
+          validity_seconds: validitySec,
+          note: note
+        };
+
+        const res = await fetch('/generate', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+
+        const data = await res.json();
+        if (!res.ok) {
+          showFieldError('amount', data.error || 'Generation failed.');
+          return;
+        }
+
+        // Active State
+        _expiryTs = data.expiry;
+        _totalValiditySec = validitySec;
+        _qrActiveOrExpired = true;
+
+        genBtn.textContent = 'Generate new QR';
+
+        // 1. Shop name
+        const shopDisp = document.getElementById('shopNameDisplay');
+        shopDisp.textContent = data.shop_name;
+        shopDisp.style.display = 'block';
+
+        // 2. QR Box
+        const qrBox = document.getElementById('qrBox');
+        qrBox.classList.remove('expired');
+        qrBox.classList.add('has-qr');
+        document.getElementById('qrPlaceholder').style.display = 'none';
+        const qrImg = document.getElementById('qrImage');
+        qrImg.src = data.qr_url + '&_t=' + Date.now();
+        qrImg.style.display = 'block';
+
+        // 3. Amount Count-up
+        animateAmount(data.amount);
+
+        // 4. Timer Row
+        startTimer();
+
+        // 5. Save QR button
+        document.getElementById('saveQrBtn').style.display = 'inline-flex';
+
+        // 6. Thank-you message below card
+        const tyWrap = document.getElementById('thankYouWrap');
+        const tyDisp = document.getElementById('thankYouDisplay');
+        if (thankYou) {
+          tyDisp.textContent = thankYou;
+          tyWrap.style.display = 'flex';
+        } else {
+          tyWrap.style.display = 'none';
+          tyDisp.textContent = '';
+        }
+
+      } catch (err) {
+        showFieldError('amount', 'Network error. Please try again.');
+      } finally {
+        genBtn.disabled = false;
+        if (!_qrActiveOrExpired) {
+          genBtn.textContent = 'Generate QR';
+        } else {
+          genBtn.textContent = 'Generate new QR';
+        }
+      }
+    }
+
+    /* ── Amount Count-Up Animation (400ms) ────────────────────────────── */
+    function animateAmount(targetVal) {
+      const el = document.getElementById('amountDisplay');
+      el.style.display = 'block';
+      const startVal = 0;
+      const duration = 400;
+      const startTime = performance.now();
+
+      function update(now) {
+        const elapsed = now - startTime;
+        const progress = Math.min(elapsed / duration, 1);
+        const eased = 1 - Math.pow(1 - progress, 2);
+        const current = startVal + (targetVal - startVal) * eased;
+        el.textContent = '₹ ' + current.toLocaleString('en-IN', {
+          minimumFractionDigits: 2,
+          maximumFractionDigits: 2
+        });
+        if (progress < 1) {
+          requestAnimationFrame(update);
+        } else {
+          el.textContent = '₹ ' + targetVal.toLocaleString('en-IN', {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2
+          });
+        }
+      }
+      requestAnimationFrame(update);
+    }
+
+    /* ── Timer & Progress Bar ────────────────────────────────────────── */
+    function clearCountdown() {
+      if (_timerInterval) {
+        clearInterval(_timerInterval);
+        _timerInterval = null;
+      }
+    }
+
+    function startTimer() {
+      clearCountdown();
+      const timerRow = document.getElementById('timerRow');
+      const progressFill = document.getElementById('progressFill');
+      const timerText = document.getElementById('timerText');
+
+      timerRow.style.display = 'flex';
+      progressFill.classList.remove('urgent');
+      timerText.classList.remove('urgent');
+
+      updateTick();
+      _timerInterval = setInterval(updateTick, 1000);
+    }
+
+    function updateTick() {
+      const nowSec = Math.floor(Date.now() / 1000);
+      const remaining = _expiryTs - nowSec;
+
+      const progressFill = document.getElementById('progressFill');
+      const timerText = document.getElementById('timerText');
+
+      if (remaining <= 0) {
+        clearCountdown();
+        triggerExpired();
+        return;
+      }
+
+      // Linear shrink
+      const fraction = Math.max(0, Math.min(1, remaining / _totalValiditySec));
+      progressFill.style.width = (fraction * 100) + '%';
+      timerText.textContent = formatMmSs(remaining);
+
+      if (remaining <= 30) {
+        progressFill.classList.add('urgent');
+        timerText.classList.add('urgent');
+      } else {
+        progressFill.classList.remove('urgent');
+        timerText.classList.remove('urgent');
+      }
+    }
+
+    function triggerExpired() {
+      const qrBox = document.getElementById('qrBox');
+      qrBox.classList.remove('has-qr');
+      qrBox.classList.add('expired');
+
+      const progressFill = document.getElementById('progressFill');
+      progressFill.style.width = '0%';
+      progressFill.classList.add('urgent');
+
+      const timerText = document.getElementById('timerText');
+      timerText.textContent = 'Expired';
+      timerText.classList.add('urgent');
+
+      document.getElementById('saveQrBtn').style.display = 'none';
+
+      // Keep shop name, amount, and thank you message intact
+    }
+
+    /* ── Reset Functionality ─────────────────────────────────────────── */
+    function resetForm() {
+      // Clear 5 inputs
+      document.getElementById('shopName').value = '';
+      document.getElementById('amount').value = '';
+      validityInput.value = '05:00';
+      document.getElementById('note').value = '';
+      noteCounter.textContent = '0 / 50';
+      document.getElementById('thankYou').value = '';
+
+      clearAllErrors();
+      clearCountdown();
+      _expiryTs = 0;
+      _qrActiveOrExpired = false;
+
+      // Reset Generate button label
+      document.getElementById('generateBtn').textContent = 'Generate QR';
+
+      // Reset Right card to empty state
+      document.getElementById('shopNameDisplay').style.display = 'none';
+      document.getElementById('shopNameDisplay').textContent = '';
+
+      const qrBox = document.getElementById('qrBox');
+      qrBox.classList.remove('has-qr', 'expired');
+      document.getElementById('qrPlaceholder').style.display = 'flex';
+      document.getElementById('qrImage').style.display = 'none';
+      document.getElementById('qrImage').src = '';
+
+      document.getElementById('amountDisplay').style.display = 'none';
+      document.getElementById('amountDisplay').textContent = '';
+
+      const timerRow = document.getElementById('timerRow');
+      timerRow.style.display = 'none';
+      const progressFill = document.getElementById('progressFill');
+      progressFill.style.width = '100%';
+      progressFill.classList.remove('urgent');
+      const timerText = document.getElementById('timerText');
+      timerText.textContent = '05:00';
+      timerText.classList.remove('urgent');
+
+      document.getElementById('saveQrBtn').style.display = 'none';
+
+      // Hide thank-you message
+      const tyWrap = document.getElementById('thankYouWrap');
+      tyWrap.style.display = 'none';
+      document.getElementById('thankYouDisplay').textContent = '';
+    }
+
+    /* ── Save QR Image ───────────────────────────────────────────────── */
+    async function saveQr() {
+      const qrImg = document.getElementById('qrImage');
+      if (!qrImg || !qrImg.src) return;
+      try {
+        const res = await fetch(qrImg.src);
+        const blob = await res.blob();
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'py-upi-qr.png';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+      } catch (err) {
+        window.open(qrImg.src, '_blank');
+      }
+    }
+
+    // Initialize on page load
+    initSavedUpis();
+  </script>
+</body>
+</html>
